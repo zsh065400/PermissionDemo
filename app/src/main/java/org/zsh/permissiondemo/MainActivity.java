@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 
+//		测试添加悬浮窗
 		findViewById(R.id.btnAd).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
@@ -128,7 +129,8 @@ public class MainActivity extends AppCompatActivity {
 
 //		第三方ROM最好采用每次请求一个的方式
 //		请求单个权限
-		Execute.getInstance(this).requestOne(Manifest.permission.WRITE_EXTERNAL_STORAGE, new HandleRes());
+		Execute.getInstance(this).requestOne(
+				Manifest.permission.WRITE_EXTERNAL_STORAGE,new HandleRes());
 	}
 
 	@Override

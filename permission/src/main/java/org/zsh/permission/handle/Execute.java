@@ -126,7 +126,7 @@ public class Execute {
 			setCallback(callback);
 		boolean state = checkGrantedState(permission);
 		if (!state) {
-			//为true，表明用户拒绝过至少一次
+			//为true，表明用户拒绝过
 			if (checkDenied(permission)) {
 				if (mExplain != null)
 //					请求提示信息
