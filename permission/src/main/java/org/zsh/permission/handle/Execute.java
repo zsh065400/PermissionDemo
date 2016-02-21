@@ -147,7 +147,7 @@ public class Execute {
 	 * @return true为授权，false为未授权
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	private boolean checkGrantedState(String permission) {
+	public boolean checkGrantedState(String permission) {
 		int granted = mActivity.checkSelfPermission(permission);
 		boolean state = granted == PackageManager.PERMISSION_GRANTED ? true : false;
 		Log.d(TAG, "checkGrantedState ---> " + permission + " granted: " + state);
@@ -161,7 +161,7 @@ public class Execute {
 	 * @return 拒绝过返回true，否则返回false
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	private boolean checkDenied(String permission) {
+	public boolean checkDenied(String permission) {
 		boolean b = mActivity.shouldShowRequestPermissionRationale(permission);
 		Log.d(TAG, "checkDenied ---> " + permission + " denied : " + b);
 		return b;
