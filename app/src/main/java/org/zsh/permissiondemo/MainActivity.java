@@ -5,7 +5,6 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.PixelFormat;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -20,6 +19,7 @@ import android.widget.Toast;
 
 import org.zsh.permission.callback.IExplain;
 import org.zsh.permission.callback.IHandleCallback;
+import org.zsh.permission.callback.IParticular;
 import org.zsh.permission.handle.Execute;
 
 public class MainActivity extends AppCompatActivity {
@@ -71,102 +71,113 @@ public class MainActivity extends AppCompatActivity {
 		});
 	}
 
-	/**
-	 * 启动特殊权限：<p>
-	 * <ul>
-	 * <li>SYSTEM_ALERT_WINDOW：悬浮窗<p>
-	 * <li>WRITE_SETTINGS：修改系统设置
-	 * </ul>
-	 * <h3>方法：设置Action，使用startActivityForResult</h3>
-	 */
+	@TargetApi(Build.VERSION_CODES.M)
 	private void particularPermission() {
-//		Settings.ACTION_MANAGE_OVERLAY_PERMISSION 悬浮窗
-		Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
-//		Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
-		intent.setData(Uri.parse("package:" + getPackageName()));
-		if (intent.resolveActivity(getPackageManager()) != null) {
-			startActivityForResult(intent, REQUEST_CODE);
-		}
+		Execute.getInstance(this).reqParticularPermission(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+				getPackageName()
+				, new IParticular() {
+					@Override
+					public void grant() {
+						Log.d("权限授权", "-----> 授权");
+					}
+
+					@Override
+					public void deny() {
+						Log.d("权限拒绝", "-----> 拒绝");
+					}
+				}, REQUEST_CODE);
 	}
 
 	@TargetApi(Build.VERSION_CODES.M)
 	private void dangerousPermission() {
-//		int res = checkSelfPermission(Manifest.permission.CAMERA);
-//		if (res == PackageManager.PERMISSION_DENIED) {
-//			//在出现“不再询问”选项时该方法返回true
-//			if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-//
-//				Toast.makeText(this, "扫描二维码需要开启相机，请您允许该权限", Toast.LENGTH_LONG).show();
-//			}
-//			requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CODE);
-//		} else {
-//			Toast.makeText(this, "授权结果:已授权", Toast.LENGTH_LONG).show();
-//		}
-
-//		Execute.getInstance(this).requestOne(Manifest.permission.CAMERA, new IHandleCallback() {
-//			@Override
-//			public void granted(String permission) {
-//				Toast.makeText(MainActivity.this, "授权结果:已授权", Toast.LENGTH_LONG).show();
-//			}
-//
-//			@Override
-//			public void denied(String permission) {
-//				Toast.makeText(MainActivity.this, "授权结果:未授权", Toast.LENGTH_LONG).show();
-//			}
-//		});
+		//设置提示框内容
 		Execute.getInstance(this).setExplain(new IExplain() {
 			@Override
 			public void showExplain(String[] permissions) {
-				Log.d("Explaion ", "some permissions need explain");
+				String msg = "需要给用户提示的权限有：";
+				for (String p : permissions) {
+					msg = msg + p;
+				}
+				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
 			}
 		});
-		Execute.getInstance(this).requestOnePlus(new String[]{
-				Manifest.permission.WRITE_EXTERNAL_STORAGE,
-				Manifest.permission.SEND_SMS
-		}, new IHandleCallback() {
+//		请求多个权限
+//		Execute.getInstance(this).requestOnePlus(new String[]{
+//				Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//				Manifest.permission.SEND_SMS
+//		}, new IHandleCallback() {
+//
+//			@Override
+//			public void granted(String[] permissions) {
+//				String msg = "授权的权限有：";
+//				for (String p : permissions) {
+//					msg = msg + p;
+//				}
+//				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+//			}
+//
+//			@Override
+//			public void denied(String[] permissions) {
+//				String msg = "拒绝的权限有：";
+//				for (String p : permissions) {
+//					msg = msg + p;
+//				}
+//				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+//			}
+//		});
 
-			@Override
-			public void granted(String[] permissions) {
-				int lenght = permissions.length;
-				for (int i = 0; i < lenght; i++) {
-					Log.d("grant permission ", permissions[i]);
-				}
-			}
-
-			@Override
-			public void denied(String[] permissions) {
-				int lenght = permissions.length;
-				for (int i = 0; i < lenght; i++) {
-					Log.d("deny permission ", permissions[i]);
-				}
-			}
-		});
+//		第三方ROM最好采用每次请求一个的方式
+//		请求单个权限
+		Execute.getInstance(this).requestOne(Manifest.permission.WRITE_EXTERNAL_STORAGE, new HandleRes());
 	}
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-//		if (requestCode == REQUEST_CODE) {
-//			int grant = grantResults[0];
-//			boolean isGranted = grant == PackageManager.PERMISSION_GRANTED;
-//			Toast.makeText(this, "授权结果：" + (isGranted ? "已授权" : "未授权"), Toast.LENGTH_LONG).show();
-//		}
-		Execute.getInstance(this).notifyResult(permissions, grantResults);
+		Execute.getInstance(this).handleResult(permissions, grantResults);
 	}
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
-		if (requestCode == REQUEST_CODE) {
-			getPermission();
+		Execute.getInstance(this).handleParticular(requestCode);
+	}
+
+//	为了测试第三方ROM的逻辑性
+//	实现该接口即可处理请求结果
+	private class HandleRes implements IHandleCallback {
+
+		@Override
+		public void granted(String[] permission) {
+			switch (permission[0]) {
+				case Manifest.permission.WRITE_EXTERNAL_STORAGE:
+					Toast.makeText(MainActivity.this, "请求写入存储卡成功", Toast.LENGTH_LONG).show();
+					Execute.getInstance(MainActivity.this).requestOnePlus(new String[]{
+							Manifest.permission.READ_PHONE_STATE,
+					}, new HandleRes());
+					break;
+
+				case Manifest.permission.READ_PHONE_STATE:
+					Toast.makeText(MainActivity.this, "请求读取手机状态成功", Toast.LENGTH_LONG).show();
+					break;
+			}
+		}
+
+		@Override
+		public void denied(String[] permission) {
+			switch (permission[0]) {
+				case Manifest.permission.WRITE_EXTERNAL_STORAGE:
+					Toast.makeText(MainActivity.this, "请求写入存储卡失败", Toast.LENGTH_LONG).show();
+					Execute.getInstance(MainActivity.this).requestOnePlus(new String[]{
+							Manifest.permission.READ_PHONE_STATE,
+					}, new HandleRes());
+					break;
+
+				case Manifest.permission.READ_PHONE_STATE:
+					Toast.makeText(MainActivity.this, "请求读取手机状态失败", Toast.LENGTH_LONG).show();
+					break;
+			}
 		}
 	}
 
-	@TargetApi(Build.VERSION_CODES.M)
-	private void getPermission() {
-//		if (Settings.canDrawOverlays(this)) {
-		if (Settings.System.canWrite(this)) {
-			Toast.makeText(this, "获取权限成功", Toast.LENGTH_LONG).show();
-		}
-	}
 }

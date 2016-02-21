@@ -2,20 +2,26 @@ package org.zsh.permission.handle;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
 import org.zsh.permission.callback.IExplain;
 import org.zsh.permission.callback.IHandleCallback;
+import org.zsh.permission.callback.IParticular;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * 具体执行类
+ *
  * @author：Administrator
- * @version:1.0
+ * @version:v1.2
  */
 public class Execute {
 	private static final String TAG = Execute.class.getSimpleName();
@@ -24,10 +30,22 @@ public class Execute {
 	private IExplain mExplain;
 	private Activity mActivity;
 
+	/**
+	 * 设置授权结果回调
+	 *
+	 * @param mCallback 回调实现
+	 */
 	public void setCallback(IHandleCallback mCallback) {
 		this.mCallback = mCallback;
 	}
 
+	/**
+	 * 设置被拒绝权限的提示信息
+	 * <p>当权限被拒绝一次后再次申请时</p>
+	 * <p>小米等第三方ROM可能无效。</p>
+	 *
+	 * @param mExplain 提示回调
+	 */
 	public void setExplain(IExplain mExplain) {
 		this.mExplain = mExplain;
 	}
@@ -59,33 +77,39 @@ public class Execute {
 	public void requestOnePlus(@NonNull String[] permissions, IHandleCallback callback) {
 		if (permissions.length == 0)
 			return;
-//		for (String permission : permissions) {
-//			requestOne(permission, callback);
-//		}
+		if (permissions.length == 1) {
+			requestOne(permissions[0], callback);
+			return;
+		}
 		if (callback != null)
 			setCallback(callback);
-		List<String> needPermission = new ArrayList<>();
-		List<String> denyPermission = new ArrayList<>();
-		List<String> grantPermission = new ArrayList<>();
+//		需要请求的权限
+		List<String> need = new ArrayList<>();
+//		拒绝过的权限
+		List<String> denied = new ArrayList<>();
+//		已经获得授权的权限
+		List<String> granted = new ArrayList<>();
 		for (String permission : permissions) {
 			if (!checkGrantedState(permission)) {
-				needPermission.add(permission);
+				need.add(permission);
 				if (checkDenied(permission))
-					denyPermission.add(permission);
+					denied.add(permission);
 			} else {
-				grantPermission.add(permission);
+				granted.add(permission);
 			}
 		}
-		if (!denyPermission.isEmpty()) {
+		if (!denied.isEmpty()) {
 			if (mExplain != null)
-				mExplain.showExplain(denyPermission.toArray(new String[denyPermission.size()]));
+				mExplain.showExplain(
+						denied.toArray(new String[denied.size()]));
 		}
 		//判断有无需要请求的权限
-		if (!needPermission.isEmpty()) {
-			mActivity.requestPermissions(needPermission.toArray(new String[needPermission.size()]), REQUEST_PERMISSION_CODE);
+		if (!need.isEmpty()) {
+			mActivity.requestPermissions(
+					need.toArray(new String[need.size()]), REQUEST_PERMISSION_CODE);
 		}
-		if (!grantPermission.isEmpty()) {
-			mCallback.granted(grantPermission.toArray(new String[grantPermission.size()]));
+		if (!granted.isEmpty()) {
+			mCallback.granted(granted.toArray(new String[granted.size()]));
 		}
 	}
 
@@ -105,11 +129,13 @@ public class Execute {
 			//为true，表明用户拒绝过至少一次
 			if (checkDenied(permission)) {
 				if (mExplain != null)
+//					请求提示信息
 					mExplain.showExplain(new String[]{permission});
-				//请求权限
 			}
+			//请求权限
 			mActivity.requestPermissions(new String[]{permission}, REQUEST_PERMISSION_CODE);
 		} else {
+//			已经授权则回调接口
 			mCallback.granted(new String[]{permission});
 		}
 	}
@@ -124,7 +150,7 @@ public class Execute {
 	private boolean checkGrantedState(String permission) {
 		int granted = mActivity.checkSelfPermission(permission);
 		boolean state = granted == PackageManager.PERMISSION_GRANTED ? true : false;
-		Log.d(TAG, "Permission :" + permission + " state is :" + state);
+		Log.d(TAG, "checkGrantedState ---> " + permission + " granted: " + state);
 		return state;
 	}
 
@@ -137,12 +163,18 @@ public class Execute {
 	@TargetApi(Build.VERSION_CODES.M)
 	private boolean checkDenied(String permission) {
 		boolean b = mActivity.shouldShowRequestPermissionRationale(permission);
-		Log.d(TAG, "Permission :" + permission + (b ? " denied" : " no denied"));
+		Log.d(TAG, "checkDenied ---> " + permission + " denied : " + b);
 		return b;
 	}
 
+	/**
+	 * 通知结果，回调接口
+	 *
+	 * @param permissions
+	 * @param grantResults
+	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	public void notifyResult(String[] permissions, int[] grantResults) {
+	public void handleResult(String[] permissions, int[] grantResults) {
 		int length = permissions.length;
 		if (length == 1) {
 			String permission = permissions[0];
@@ -152,8 +184,8 @@ public class Execute {
 			} else {
 				mCallback.denied(new String[]{permission});
 			}
-			//一个以上的权限
-		} else {
+
+		} else {//一个以上的权限
 			List<String> grantPer = new ArrayList<>();
 			List<String> denyPer = new ArrayList<>();
 			for (int i = 0; i < length; i++) {
@@ -172,4 +204,65 @@ public class Execute {
 			}
 		}
 	}
+
+	private int mRequestCode;
+	private String mParticularPermission;
+	//	Particular Permission Callback
+	private IParticular mPPCallback;
+
+	/**
+	 * 根据请求码处理权限结果
+	 *
+	 * @param requestCode 请求代码
+	 */
+	@TargetApi(Build.VERSION_CODES.M)
+	public void handleParticular(int requestCode) {
+		boolean b;
+		if (requestCode == mRequestCode) {
+			switch (mParticularPermission) {
+				case Settings.ACTION_MANAGE_OVERLAY_PERMISSION:
+					b = Settings.canDrawOverlays(mActivity);
+					break;
+				case Settings.ACTION_MANAGE_WRITE_SETTINGS:
+					b = Settings.System.canWrite(mActivity);
+					break;
+
+				default:
+					return;
+			}
+			if (mPPCallback != null && b) {
+				mPPCallback.grant();
+			} else {
+				mPPCallback.deny();
+			}
+		}
+	}
+
+	/**
+	 * <h3>请求特殊权限，目前支持悬浮窗和写入系统设置</h3>
+	 * <li>Settings.ACTION_MANAGE_WRITE_SETTINGS</li>
+	 * <li>Settings.Settings.ACTION_MANAGE_OVERLAY_PERMISSION</li>
+	 *
+	 * @param permission  支持的两个权限之一
+	 * @param packageName 请求该权限的包名
+	 * @param callback    处理结果回调
+	 * @param requestCode 请求代码
+	 */
+	@TargetApi(Build.VERSION_CODES.M)
+	public void reqParticularPermission(@NonNull String permission,
+	                                    @NonNull String packageName,
+	                                    IParticular callback,
+	                                    int requestCode) {
+		this.mPPCallback = callback;
+		this.mRequestCode = requestCode;
+		this.mParticularPermission = permission;
+		Intent intent = new Intent(permission);
+		intent.setData(Uri.parse("package:" + packageName));
+//		非6.0+版本没有这两个权限界面
+//		if (intent.resolveActivity(mActivity.getPackageManager()) != null) {
+		mActivity.startActivityForResult(intent, requestCode);
+//		}
+	}
+
+
 }
