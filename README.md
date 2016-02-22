@@ -1,29 +1,29 @@
-# PermissionsExecute£¨Android6.0ÔËĞĞÊ±È¨ÏŞ£© By:ÕÔÊ÷ºÀ
+ï»¿# PermissionExecute Byï¼šèµµæ ‘è±ª
 
 
-Õâ¸ö¿âÊÇÎªÁËÊÊÅä¡°ÃŞ»¨ÌÇ¡±¶ø·â×°µÄÔËĞĞÊ±È¨ÏŞÇëÇó´¦Àí¿â¡£
+è¿™ä¸ªåº“æ˜¯ä¸ºäº†é€‚é…â€œæ£‰èŠ±ç³–â€è€Œå°è£…çš„è¿è¡Œæ—¶æƒé™è¯·æ±‚å¤„ç†åº“ã€‚
 
-ÇëÇó·¶Àı:
+è¯·æ±‚èŒƒä¾‹:
 
 ```java
-//ÇëÇóµ¥¸öÈ¨ÏŞ
+//è¯·æ±‚å•ä¸ªæƒé™
 Execute.getInstance(this).
 	requestOne(Manifest.permission.WRITE_EXTERNAL_STORAGE,
 			   new IHandleCallback() {
 				@Override
 				public void granted(String[] permission) {
-					//»ñµÃÊÚÈ¨
+					//è·å¾—æˆæƒ
 				}
 
 				@Override
 				public void denied(String[] permission) {
-					//¾Ü¾øÈ¨ÏŞ
+					//æ‹’ç»æƒé™
 				}
 			});
 ```
 
 ```java
-//ÇëÇó¶à¸öÈ¨ÏŞ
+//è¯·æ±‚å¤šä¸ªæƒé™
 Execute.getInstance(this).
 	requestOnePlus(new String[]{
 			Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -32,7 +32,7 @@ Execute.getInstance(this).
 
 			@Override
 			public void granted(String[] permissions) {
-				String msg = "ÊÚÈ¨µÄÈ¨ÏŞÓĞ£º";
+				String msg = "æˆæƒçš„æƒé™æœ‰ï¼š";
 				for (String p : permissions) {
 					msg = msg + p;
 				}
@@ -41,7 +41,7 @@ Execute.getInstance(this).
 
 			@Override
 			public void denied(String[] permissions) {
-				String msg = "¾Ü¾øµÄÈ¨ÏŞÓĞ£º";
+				String msg = "æ‹’ç»çš„æƒé™æœ‰ï¼š";
 				for (String p : permissions) {
 					msg = msg + p;
 				}
@@ -50,14 +50,14 @@ Execute.getInstance(this).
 		});
 ```
 
-ÉèÖÃÌáÊ¾¿ò:
+è®¾ç½®æç¤ºæ¡†:
 
 ```java
 Execute.getInstance(this).
-	setExplain(new IExplain() {
+	setRationale(new IRationale() {
 		@Override
-		public void showExplain(String[] permissions) {
-			String msg = "ĞèÒª¸øÓÃ»§ÌáÊ¾µÄÈ¨ÏŞÓĞ£º";
+		public void showRationale(String[] permissions) {
+			String msg = "éœ€è¦ç»™ç”¨æˆ·æç¤ºçš„æƒé™æœ‰ï¼š";
 			for (String p : permissions) {
 				msg = msg + p;
 			}
@@ -66,41 +66,75 @@ Execute.getInstance(this).
 	});
 ```
 
-¸ü¶àÄÚÈİÇë¹Ø×¢ÄÚ²¿ÊµÏÖºÍDemo
+Fragmentï¼š
+```java
+@Override
+	public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+	  super.onViewCreated(view, savedInstanceState);
+		Execute.getInstance(getActivity()).requestOne(
+		Manifest.permission.CAMERA,
+			new IHandleCallback() {
+				@Override
+				public void granted(String[] permission) {
+				
+				}
 
-## Ê¹ÓÃÇé¿ö
+				@Override
+				public void denied(String[] permission) {
 
-AppĞèÒªÖ§³ÖAndroid6.0+°æ±¾
+				}
+			});
+	}
 
-×îµÍÖ§³Ö°æ±¾£º>=api19
+	@Override
+	public void onRequestPermissionsResult(int requestCode,
+		@NonNull String[] permissions, 
+		@NonNull int[] grantResults) {
+			super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+			Execute.getInstance(getActivity()).handleResult(permissions, grantResults);
+	}
+```
 
-##Ê¹ÓÃ·½·¨
+æ›´å¤šå†…å®¹è¯·å…³æ³¨å†…éƒ¨å®ç°å’ŒDemo
 
-Ä¿Ç°ÔİÊ±½öÖ§³Ö`Activity`µÄÇëÇó£¬`Fragment`µÈºóĞø»áÖğ²½Ìí¼Ó¡£
+## ä½¿ç”¨æƒ…å†µ
 
-ÔÚ`onCreate`»ò`onResume`ÖĞÇëÇóÈ¨ÏŞ£º
+Appéœ€è¦æ”¯æŒAndroid6.0+ç‰ˆæœ¬
+
+æœ€ä½æ”¯æŒç‰ˆæœ¬ï¼š>=api19
+
+##ä½¿ç”¨æ–¹æ³•
+
+
+åœ¨`onCreate`æˆ–`onResume`ä¸­è¯·æ±‚æƒé™ï¼š
 ...
 
-1.µ÷ÓÃ`Execute.getInstance(Activity).requestOne`»ò`Execute.getInstance(this).requestOnePlus`ÇëÇóÒ»¸ö»ò¶à¸öÈ¨ÏŞ
+1.è°ƒç”¨`Execute.getInstance(Activity).requestOne`æˆ–`Execute.getInstance(this).requestOnePlus`è¯·æ±‚ä¸€ä¸ªæˆ–å¤šä¸ªæƒé™
 
-*¿ÉÌí¼Ó¾Ü¾ø¹ıÈ¨ÏŞµÄÌáÊ¾ĞÅÏ¢»Øµ÷½Ó¿Ú`Execute.getInstance(Activity).setExplain`
+*å¯æ·»åŠ æ‹’ç»è¿‡æƒé™çš„æç¤ºä¿¡æ¯å›è°ƒæ¥å£`Execute.getInstance(Activity).setRationale`
 
 ...
 
-2.¸´Ğ´`onRequestPermissionsResult`·½·¨£¬ÔÚÆäÖĞµ÷ÓÃ
+2.å¤å†™`onRequestPermissionsResult`æ–¹æ³•ï¼Œåœ¨å…¶ä¸­è°ƒç”¨
 `Execute.getInstance(this).handleResult(permissions, grantResults)`
 
-*ÌØÊâÈ¨ÏŞ¸´Ğ´`onActivityResult`·½·¨£¬µ÷ÓÃ`Execute.getInstance(this).handleParticular(requestCode)`
+*ç‰¹æ®Šæƒé™å¤å†™`onActivityResult`æ–¹æ³•ï¼Œè°ƒç”¨`Execute.getInstance(this).handleParticular(requestCode)`
 
 ...
 
-3.¿ªÊ¼ÌåÑé¼òµ¥µÄÈ¨ÏŞÇëÇó°É£¡
+3.å¼€å§‹ä½“éªŒç®€å•çš„æƒé™è¯·æ±‚å§ï¼
 
-## ÒÀÀµµ¼Èë
+---
+**å…¶ä»–æ–¹æ³•ï¼š
+1.checkGrantedState åˆ¤æ–­æƒé™è¯·æ±‚çŠ¶æ€
+2.checkShouldShowRationale åˆ¤æ–­æƒé™æ˜¯å¦åº”è¯¥æ˜¾ç¤ºæç¤ºä¿¡æ¯
 
-Ä¿Ç°ÔİÎ´ÉÏ´«ÖÁJcenter£¬¾¡ÇëÆÚ´ı...
 
-ÔÚProject `build.gradle` ÖĞÅäÖÃ :
+## ä¾èµ–å¯¼å…¥
+
+ç›®å‰æš‚æœªä¸Šä¼ è‡³Jcenterï¼Œå°½è¯·æœŸå¾…...
+
+åœ¨Project `build.gradle` ä¸­é…ç½® :
 
 ```gradle
 repositories {
