@@ -10,7 +10,7 @@ import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import org.zsh.permission.callback.IExplain;
+import org.zsh.permission.callback.IRationale;
 import org.zsh.permission.callback.IHandleCallback;
 import org.zsh.permission.callback.IParticular;
 
@@ -21,14 +21,14 @@ import java.util.List;
  * 具体执行类
  *
  * @author：Administrator
- * @version:v1.2
+ * @version:v1.3
  */
 public class Execute {
 	private static final String TAG = Execute.class.getSimpleName();
 	public static final int REQUEST_PERMISSION_CODE = 0x44444;
 	private IHandleCallback mCallback;
-	private IExplain mExplain;
-	private Activity mActivity;
+	private IRationale mRationale;
+	private Activity mActivityContext;
 
 	/**
 	 * 设置授权结果回调
@@ -44,10 +44,10 @@ public class Execute {
 	 * <p>当权限被拒绝一次后再次申请时</p>
 	 * <p>小米等第三方ROM可能无效。</p>
 	 *
-	 * @param mExplain 提示回调
+	 * @param rationable 提示回调
 	 */
-	public void setExplain(IExplain mExplain) {
-		this.mExplain = mExplain;
+	public void setRationable(IRationale rationable) {
+		this.mRationale = rationable;
 	}
 
 	private static Execute mInstance;
@@ -64,7 +64,7 @@ public class Execute {
 	}
 
 	private Execute(Activity activity) {
-		this.mActivity = activity;
+		this.mActivityContext = activity;
 	}
 
 	/**
@@ -92,20 +92,20 @@ public class Execute {
 		for (String permission : permissions) {
 			if (!checkGrantedState(permission)) {
 				need.add(permission);
-				if (checkDenied(permission))
+				if (checkShouldShowRationale(permission))
 					denied.add(permission);
 			} else {
 				granted.add(permission);
 			}
 		}
 		if (!denied.isEmpty()) {
-			if (mExplain != null)
-				mExplain.showExplain(
+			if (mRationale != null)
+				mRationale.showRationale(
 						denied.toArray(new String[denied.size()]));
 		}
 		//判断有无需要请求的权限
 		if (!need.isEmpty()) {
-			mActivity.requestPermissions(
+			mActivityContext.requestPermissions(
 					need.toArray(new String[need.size()]), REQUEST_PERMISSION_CODE);
 		}
 		if (!granted.isEmpty()) {
@@ -127,13 +127,13 @@ public class Execute {
 		boolean state = checkGrantedState(permission);
 		if (!state) {
 			//为true，表明用户拒绝过
-			if (checkDenied(permission)) {
-				if (mExplain != null)
+			if (checkShouldShowRationale(permission)) {
+				if (mRationale != null)
 //					请求提示信息
-					mExplain.showExplain(new String[]{permission});
+					mRationale.showRationale(new String[]{permission});
 			}
 			//请求权限
-			mActivity.requestPermissions(new String[]{permission}, REQUEST_PERMISSION_CODE);
+			mActivityContext.requestPermissions(new String[]{permission}, REQUEST_PERMISSION_CODE);
 		} else {
 //			已经授权则回调接口
 			mCallback.granted(new String[]{permission});
@@ -148,22 +148,22 @@ public class Execute {
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
 	public boolean checkGrantedState(String permission) {
-		int granted = mActivity.checkSelfPermission(permission);
+		int granted = mActivityContext.checkSelfPermission(permission);
 		boolean state = granted == PackageManager.PERMISSION_GRANTED ? true : false;
 		Log.d(TAG, "checkGrantedState ---> " + permission + " granted: " + state);
 		return state;
 	}
 
 	/**
-	 * 检查权限是否被拒绝过
+	 * 检查权限是否应该显示提示信息
 	 *
 	 * @param permission 被检查的权限
 	 * @return 拒绝过返回true，否则返回false
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	public boolean checkDenied(String permission) {
-		boolean b = mActivity.shouldShowRequestPermissionRationale(permission);
-		Log.d(TAG, "checkDenied ---> " + permission + " denied : " + b);
+	public boolean checkShouldShowRationale(String permission) {
+		boolean b = mActivityContext.shouldShowRequestPermissionRationale(permission);
+		Log.d(TAG, "checkShouldShowRationale ---> " + permission + " denied : " + b);
 		return b;
 	}
 
@@ -221,10 +221,10 @@ public class Execute {
 		if (requestCode == mRequestCode) {
 			switch (mParticularPermission) {
 				case Settings.ACTION_MANAGE_OVERLAY_PERMISSION:
-					b = Settings.canDrawOverlays(mActivity);
+					b = Settings.canDrawOverlays(mActivityContext);
 					break;
 				case Settings.ACTION_MANAGE_WRITE_SETTINGS:
-					b = Settings.System.canWrite(mActivity);
+					b = Settings.System.canWrite(mActivityContext);
 					break;
 
 				default:
@@ -259,8 +259,8 @@ public class Execute {
 		Intent intent = new Intent(permission);
 		intent.setData(Uri.parse("package:" + packageName));
 //		非6.0+版本没有这两个权限界面
-//		if (intent.resolveActivity(mActivity.getPackageManager()) != null) {
-		mActivity.startActivityForResult(intent, requestCode);
+//		if (intent.resolveActivity(mActivityContext.getPackageManager()) != null) {
+		mActivityContext.startActivityForResult(intent, requestCode);
 //		}
 	}
 

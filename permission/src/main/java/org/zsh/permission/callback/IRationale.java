@@ -6,13 +6,13 @@ package org.zsh.permission.callback;
  * @author：Administrator
  * @version:1.0
  */
-public interface IExplain {
+public interface IRationale {
 
 	/**
 	 * 用于提示权限信息
 	 *
 	 * @param permissions 被拒绝过的所有权限
 	 */
-	void showExplain(String[] permissions);
+	void showRationale(String[] permissions);
 
 }
