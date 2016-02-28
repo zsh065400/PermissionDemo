@@ -1,7 +1,7 @@
-﻿# PermissionExecute By：赵树豪
+# PermissionExecute By：赵树豪
 
 
-这个库是为了适配“棉花糖”而封装的运行时权限请求处理库。
+为适配“棉花糖”而封装的运行时权限请求处理库。
 
 请求范例:
 
@@ -99,12 +99,19 @@ Fragment：
 
 ## 使用情况
 
-App需要支持Android6.0+版本
+> * App需要支持Android6.0+版本
 
-最低支持版本：>=api19
+> * 最低支持版本：>=api19
 
 ##使用方法
 
+
+#####添加依赖(module下build.gradle)
+```gradle
+dependencies {
+    compile 'org.zsh.support:permission:1.0.0'
+}
+```
 
 在`onCreate`或`onResume`中请求权限：
 ...
@@ -129,19 +136,3 @@ App需要支持Android6.0+版本
 1.checkGrantedState 判断权限请求状态
 2.checkShouldShowRationale 判断权限是否应该显示提示信息
 
-
-## 依赖导入
-
-目前暂未上传至Jcenter，尽请期待...
-
-在Project `build.gradle` 中配置 :
-
-```gradle
-repositories {
-    jcenter()
-}
-
-dependencies {
-    compile ''
-}
-```
