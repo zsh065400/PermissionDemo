@@ -10,34 +10,25 @@ import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import org.zsh.permission.callback.IRationale;
 import org.zsh.permission.callback.IHandleCallback;
 import org.zsh.permission.callback.IParticular;
+import org.zsh.permission.callback.IRationale;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 具体执行类
+ * 请求类
  *
- * @author：Administrator
- * @version:v1.3
+ * @author zhaoshuhao
+ * @version 2.0
  */
-public class Execute {
-	private static final String TAG = Execute.class.getSimpleName();
-	public static final int REQUEST_PERMISSION_CODE = 0x44444;
+public class Request {
+	private static final String TAG = "Request";
+	public static final int CODE = 0x44444;
 	private IHandleCallback mCallback;
 	private IRationale mRationale;
-	private Activity mActivityContext;
-
-	/**
-	 * 设置授权结果回调
-	 *
-	 * @param mCallback 回调实现
-	 */
-	public void setCallback(IHandleCallback mCallback) {
-		this.mCallback = mCallback;
-	}
+	private Activity mActivity;
 
 	/**
 	 * 设置被拒绝权限的提示信息
@@ -46,70 +37,85 @@ public class Execute {
 	 *
 	 * @param rationable 提示回调
 	 */
-	public void setRationable(IRationale rationable) {
+	public Request setRationable(IRationale rationable) {
 		this.mRationale = rationable;
+		return sInstance;
 	}
 
-	private static Execute mInstance;
+	private volatile static Request sInstance;
 
-	public static Execute getInstance(Activity activity) {
-		if (mInstance == null) {
-			synchronized (Execute.class) {
-				if (mInstance == null) {
-					mInstance = new Execute(activity);
-				}
-			}
+	public static Request getInstance(Activity activity) {
+		if (sInstance == null) {
+			sInstance = new Request(activity);
 		}
-		return mInstance;
+		return sInstance;
 	}
 
-	private Execute(Activity activity) {
-		this.mActivityContext = activity;
+	private Request(Activity activity) {
+		this.mActivity = activity;
+	}
+
+	private String[] listToArray(List list) {
+		int length = list.size();
+		String[] s = new String[length];
+		return (String[]) list.toArray(s);
+	}
+
+	/**
+	 * 执行请求权限操作
+	 *
+	 * @param callback    设置回调接口
+	 * @param permissions 请求的权限
+	 */
+	@TargetApi(Build.VERSION_CODES.M)
+	public void execute(IHandleCallback callback, @NonNull String... permissions) {
+		if (callback != null)
+			this.mCallback = callback;
+		if (permissions == null || permissions.length == 0)
+			throw new IllegalArgumentException("requested permission is null, method can't to do");
+		if (permissions.length == 1) {
+			one(permissions[0]);
+		} else {
+			many(permissions);
+		}
 	}
 
 	/**
 	 * 请求多个权限
 	 *
 	 * @param permissions 多个权限
-	 * @param callback    回调函数，处理结果
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	public void requestOnePlus(@NonNull String[] permissions, IHandleCallback callback) {
-		if (permissions.length == 0)
-			return;
-		if (permissions.length == 1) {
-			requestOne(permissions[0], callback);
-			return;
-		}
-		if (callback != null)
-			setCallback(callback);
+	private void many(String... permissions) {
+		Log.d(TAG, "many: permissions are --->" + permissions.toString());
+		int lenght = permissions.length;
 //		需要请求的权限
-		List<String> need = new ArrayList<>();
+		List<String> need = new ArrayList();
 //		拒绝过的权限
 		List<String> denied = new ArrayList<>();
 //		已经获得授权的权限
 		List<String> granted = new ArrayList<>();
+		int i = 0;
 		for (String permission : permissions) {
-			if (!checkGrantedState(permission)) {
+			if (!checkState(permission)) {
 				need.add(permission);
 				if (checkShouldShowRationale(permission))
 					denied.add(permission);
 			} else {
 				granted.add(permission);
 			}
+			i++;
 		}
 		if (!denied.isEmpty()) {
 			if (mRationale != null)
-				mRationale.showRationale(
-						denied.toArray(new String[denied.size()]));
+				mRationale.showRationale(listToArray(denied));
 		}
 		//判断有无需要请求的权限
 		if (!need.isEmpty()) {
-			mActivityContext.requestPermissions(
-					need.toArray(new String[need.size()]), REQUEST_PERMISSION_CODE);
+			mActivity.requestPermissions(listToArray(need), CODE);
 		}
 		if (!granted.isEmpty()) {
-			mCallback.granted(granted.toArray(new String[granted.size()]));
+			mCallback.granted(listToArray(granted));
 		}
 	}
 
@@ -118,25 +124,24 @@ public class Execute {
 	 * 建议只在需要的位置请求指定权限，且不要一次请求多个权限，造成用户体验的不友好
 	 *
 	 * @param permission 指定权限
-	 * @param callback   处理结果
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	public void requestOne(@NonNull String permission, IHandleCallback callback) {
-		if (callback != null)
-			setCallback(callback);
-		boolean state = checkGrantedState(permission);
+	private void one(String permission) {
+		Log.d(TAG, "one: the permission is--->" + permission);
+		boolean state = checkState(permission);
+		String[] s = new String[]{permission};
 		if (!state) {
 			//为true，表明用户拒绝过
 			if (checkShouldShowRationale(permission)) {
 				if (mRationale != null)
-//					请求提示信息
-					mRationale.showRationale(new String[]{permission});
+					//请求提示信息
+					mRationale.showRationale(s);
 			}
 			//请求权限
-			mActivityContext.requestPermissions(new String[]{permission}, REQUEST_PERMISSION_CODE);
+			mActivity.requestPermissions(s, CODE);
 		} else {
-//			已经授权则回调接口
-			mCallback.granted(new String[]{permission});
+			//已经授权则回调接口
+			mCallback.granted(s);
 		}
 	}
 
@@ -147,10 +152,10 @@ public class Execute {
 	 * @return true为授权，false为未授权
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	public boolean checkGrantedState(String permission) {
-		int granted = mActivityContext.checkSelfPermission(permission);
+	public boolean checkState(String permission) {
+		int granted = mActivity.checkSelfPermission(permission);
 		boolean state = granted == PackageManager.PERMISSION_GRANTED ? true : false;
-		Log.d(TAG, "checkGrantedState ---> " + permission + " granted: " + state);
+		Log.d(TAG, "checkState ---> " + permission + " granted: " + state);
 		return state;
 	}
 
@@ -162,7 +167,7 @@ public class Execute {
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
 	public boolean checkShouldShowRationale(String permission) {
-		boolean b = mActivityContext.shouldShowRequestPermissionRationale(permission);
+		boolean b = mActivity.shouldShowRequestPermissionRationale(permission);
 		Log.d(TAG, "checkShouldShowRationale ---> " + permission + " denied : " + b);
 		return b;
 	}
@@ -174,35 +179,27 @@ public class Execute {
 	 * @param grantResults
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	public void handleResult(String[] permissions, int[] grantResults) {
-		int length = permissions.length;
-		if (length == 1) {
-			String permission = permissions[0];
-			boolean result = grantResults[0] == PackageManager.PERMISSION_GRANTED ? true : false;
-			if (mCallback != null && result) {
-				mCallback.granted(new String[]{permission});
-			} else {
-				mCallback.denied(new String[]{permission});
-			}
-
-		} else {//一个以上的权限
-			List<String> grantPer = new ArrayList<>();
-			List<String> denyPer = new ArrayList<>();
-			for (int i = 0; i < length; i++) {
-				if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-					grantPer.add(permissions[i]);
-				} else {
-					denyPer.add(permissions[i]);
-				}
-			}
-
-			if (!grantPer.isEmpty() && mCallback != null) {
-				mCallback.granted(grantPer.toArray(new String[grantPer.size()]));
-			}
-			if (!denyPer.isEmpty() && mCallback != null) {
-				mCallback.denied(denyPer.toArray(new String[denyPer.size()]));
-			}
+	public void onRequestPermissionsResult(String[] permissions, int[] grantResults) {
+		Log.d(TAG, "onRequestPermissionsResult: execute");
+		int lenght = permissions.length;
+		List<String> d = new ArrayList<>();
+		List<String> g = new ArrayList<>();
+		int i = 0;
+		for (String permission : permissions) {
+			final int grantResult = grantResults[i];
+			if (grantResult == PackageManager.PERMISSION_GRANTED)
+				g.add(permission);
+			else
+				d.add(permission);
+			i++;
 		}
+		if (!g.isEmpty() && mCallback != null) {
+			mCallback.granted(listToArray(g));
+		}
+		if (!d.isEmpty() && mCallback != null) {
+			mCallback.denied(listToArray(d));
+		}
+		recycle();
 	}
 
 	private int mRequestCode;
@@ -221,10 +218,10 @@ public class Execute {
 		if (requestCode == mRequestCode) {
 			switch (mParticularPermission) {
 				case Settings.ACTION_MANAGE_OVERLAY_PERMISSION:
-					b = Settings.canDrawOverlays(mActivityContext);
+					b = Settings.canDrawOverlays(mActivity);
 					break;
 				case Settings.ACTION_MANAGE_WRITE_SETTINGS:
-					b = Settings.System.canWrite(mActivityContext);
+					b = Settings.System.canWrite(mActivity);
 					break;
 
 				default:
@@ -236,6 +233,7 @@ public class Execute {
 				mPPCallback.deny();
 			}
 		}
+		recycle();
 	}
 
 	/**
@@ -249,20 +247,37 @@ public class Execute {
 	 * @param requestCode 请求代码
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	public void reqParticularPermission(@NonNull String permission,
-	                                    @NonNull String packageName,
-	                                    IParticular callback,
-	                                    int requestCode) {
+	public void requestParticularPermission(@NonNull String permission,
+	                                        @NonNull String packageName,
+	                                        IParticular callback,
+	                                        int requestCode) {
 		this.mPPCallback = callback;
 		this.mRequestCode = requestCode;
 		this.mParticularPermission = permission;
 		Intent intent = new Intent(permission);
 		intent.setData(Uri.parse("package:" + packageName));
 //		非6.0+版本没有这两个权限界面
-//		if (intent.resolveActivity(mActivityContext.getPackageManager()) != null) {
-		mActivityContext.startActivityForResult(intent, requestCode);
+//		if (intent.resolveActivity(mActivity.getPackageManager()) != null) {
+		mActivity.startActivityForResult(intent, requestCode);
 //		}
 	}
 
+	/**
+	 * 清理内存，解决重复请求问题
+	 */
+	private void recycle() {
+		if (sInstance != null)
+			sInstance = null;
+		if (mActivity != null)
+			mActivity = null;
+		if (mCallback != null)
+			mCallback = null;
+		if (mRationale != null)
+			mRationale = null;
+		if (mParticularPermission != null)
+			mParticularPermission = null;
+		if (mPPCallback != null)
+			mPPCallback = null;
+	}
 
 }

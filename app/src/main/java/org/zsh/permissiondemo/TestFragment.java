@@ -10,7 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import org.zsh.permission.callback.IHandleCallback;
-import org.zsh.permission.handle.Execute;
+import org.zsh.permission.handle.Request;
 
 /**
  * @author：Administrator
@@ -28,7 +28,7 @@ public class TestFragment extends Fragment {
 	@Override
 	public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
 		super.onViewCreated(view, savedInstanceState);
-		Execute.getInstance(getActivity()).requestOne(Manifest.permission.CAMERA,
+		Request.getInstance(getActivity()).execute(
 				new IHandleCallback() {
 					@Override
 					public void granted(String[] permission) {
@@ -39,13 +39,13 @@ public class TestFragment extends Fragment {
 					public void denied(String[] permission) {
 
 					}
-				});
+				}, Manifest.permission.CAMERA);
 	}
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		Execute.getInstance(getActivity()).handleResult(permissions, grantResults);
+		Request.getInstance(getActivity()).onRequestPermissionsResult(permissions, grantResults);
 	}
 
 }

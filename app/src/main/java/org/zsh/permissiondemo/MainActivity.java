@@ -20,7 +20,7 @@ import android.widget.Toast;
 import org.zsh.permission.callback.IHandleCallback;
 import org.zsh.permission.callback.IParticular;
 import org.zsh.permission.callback.IRationale;
-import org.zsh.permission.handle.Execute;
+import org.zsh.permission.handle.Request;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
 
 	@TargetApi(Build.VERSION_CODES.M)
 	private void particularPermission() {
-		Execute.getInstance(this).reqParticularPermission(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+		Request.getInstance(this).requestParticularPermission(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
 				getPackageName()
 				, new IParticular() {
 					@Override
@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
 	@TargetApi(Build.VERSION_CODES.M)
 	private void dangerousPermission() {
 		//设置提示框内容
-		Execute.getInstance(this).setRationable(new IRationale() {
+		Request.getInstance(this).setRationable(new IRationale() {
 			@Override
 			public void showRationale(String[] permissions) {
 				String msg = "需要给用户提示的权限有：";
@@ -133,21 +133,21 @@ public class MainActivity extends AppCompatActivity {
 
 //		第三方ROM最好采用每次请求一个的方式
 //		请求单个权限
-		Execute.getInstance(this).requestOne(
-				Manifest.permission.CAMERA, new HandleRes());
+		Request.getInstance(this).execute(
+				new HandleRes(), Manifest.permission.CAMERA);
 
 	}
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		Execute.getInstance(this).handleResult(permissions, grantResults);
+		Request.getInstance(this).onRequestPermissionsResult(permissions, grantResults);
 	}
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
-		Execute.getInstance(this).handleParticular(requestCode);
+		Request.getInstance(this).handleParticular(requestCode);
 	}
 
 	//	为了测试第三方ROM的逻辑性、第三方ROM的危险权限和官方定义不同。
@@ -163,9 +163,10 @@ public class MainActivity extends AppCompatActivity {
 
 				case Manifest.permission.CAMERA:
 					Toast.makeText(MainActivity.this, "请求读取手机状态成功", Toast.LENGTH_LONG).show();
-					Execute.getInstance(MainActivity.this).requestOnePlus(new String[]{
-							Manifest.permission.WRITE_EXTERNAL_STORAGE,
-					}, new HandleRes());
+					Request.getInstance(MainActivity.this).execute(new HandleRes(),
+							new String[]{
+									Manifest.permission.WRITE_EXTERNAL_STORAGE,
+							});
 					break;
 			}
 		}
@@ -180,9 +181,10 @@ public class MainActivity extends AppCompatActivity {
 
 				case Manifest.permission.CAMERA:
 					Toast.makeText(MainActivity.this, "请求读取手机状态失败", Toast.LENGTH_LONG).show();
-					Execute.getInstance(MainActivity.this).requestOnePlus(new String[]{
-							Manifest.permission.WRITE_EXTERNAL_STORAGE,
-					}, new HandleRes());
+					Request.getInstance(MainActivity.this).execute(new HandleRes(),
+							new String[]{
+									Manifest.permission.WRITE_EXTERNAL_STORAGE,
+							});
 					break;
 			}
 		}
