@@ -107,34 +107,44 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 //		请求多个权限
-//		Execute.getInstance(this).requestOnePlus(new String[]{
-//				Manifest.permission.WRITE_EXTERNAL_STORAGE,
-//				Manifest.permission.SEND_SMS
-//		}, new IHandleCallback() {
-//
-//			@Override
-//			public void granted(String[] permissions) {
-//				String msg = "授权的权限有：";
-//				for (String p : permissions) {
-//					msg = msg + p;
-//				}
-//				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
-//			}
-//
-//			@Override
-//			public void denied(String[] permissions) {
-//				String msg = "拒绝的权限有：";
-//				for (String p : permissions) {
-//					msg = msg + p;
-//				}
-//				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
-//			}
-//		});
+		Request.getInstance(this).execute(new IHandleCallback() {
+
+			@Override
+			public void granted(String[] permissions) {
+				String msg = "授权的权限有：";
+				for (String p : permissions) {
+					msg = msg + p;
+				}
+				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+			}
+
+			@Override
+			public void denied(String[] permissions) {
+				String msg = "拒绝的权限有：";
+				for (String p : permissions) {
+					msg = msg + p;
+				}
+				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+			}
+		}, new String[]{
+				Manifest.permission.WRITE_EXTERNAL_STORAGE,
+				Manifest.permission.SEND_SMS
+		});
 
 //		第三方ROM最好采用每次请求一个的方式
 //		请求单个权限
 		Request.getInstance(this).execute(
-				new HandleRes(), Manifest.permission.CAMERA);
+				new IHandleCallback() {
+					@Override
+					public void granted(String[] permission) {
+
+					}
+
+					@Override
+					public void denied(String[] permission) {
+
+					}
+				}, Manifest.permission.CAMERA);
 
 	}
 
@@ -149,47 +159,4 @@ public class MainActivity extends AppCompatActivity {
 		super.onActivityResult(requestCode, resultCode, data);
 		Request.getInstance(this).handleParticular(requestCode);
 	}
-
-	//	为了测试第三方ROM的逻辑性、第三方ROM的危险权限和官方定义不同。
-//	实现该接口即可处理请求结果
-	private class HandleRes implements IHandleCallback {
-
-		@Override
-		public void granted(String[] permission) {
-			switch (permission[0]) {
-				case Manifest.permission.WRITE_EXTERNAL_STORAGE:
-					Toast.makeText(MainActivity.this, "请求写入存储卡成功", Toast.LENGTH_LONG).show();
-					break;
-
-				case Manifest.permission.CAMERA:
-					Toast.makeText(MainActivity.this, "请求读取手机状态成功", Toast.LENGTH_LONG).show();
-					Request.getInstance(MainActivity.this).execute(new HandleRes(),
-							new String[]{
-									Manifest.permission.WRITE_EXTERNAL_STORAGE,
-							});
-					break;
-			}
-		}
-
-		@Override
-		public void denied(String[] permission) {
-			switch (permission[0]) {
-				case Manifest.permission.WRITE_EXTERNAL_STORAGE:
-					Toast.makeText(MainActivity.this, "请求写入存储卡失败", Toast.LENGTH_LONG).show();
-
-					break;
-
-				case Manifest.permission.CAMERA:
-					Toast.makeText(MainActivity.this, "请求读取手机状态失败", Toast.LENGTH_LONG).show();
-					Request.getInstance(MainActivity.this).execute(new HandleRes(),
-							new String[]{
-									Manifest.permission.WRITE_EXTERNAL_STORAGE,
-							});
-					break;
-			}
-		}
-
-
-	}
-
 }

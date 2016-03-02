@@ -88,7 +88,6 @@ public class Request {
 	@TargetApi(Build.VERSION_CODES.M)
 	private void many(String... permissions) {
 		Log.d(TAG, "many: permissions are --->" + permissions.toString());
-		int lenght = permissions.length;
 //		需要请求的权限
 		List<String> need = new ArrayList();
 //		拒绝过的权限
@@ -181,7 +180,6 @@ public class Request {
 	@TargetApi(Build.VERSION_CODES.M)
 	public void onRequestPermissionsResult(String[] permissions, int[] grantResults) {
 		Log.d(TAG, "onRequestPermissionsResult: execute");
-		int lenght = permissions.length;
 		List<String> d = new ArrayList<>();
 		List<String> g = new ArrayList<>();
 		int i = 0;
