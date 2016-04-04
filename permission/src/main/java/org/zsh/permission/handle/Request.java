@@ -25,7 +25,6 @@ import java.util.List;
  */
 public class Request {
 	private static final String TAG = "Request";
-	public static final int CODE = 0x44444;
 	private IHandleCallback mCallback;
 	private IRationale mRationale;
 	private Activity mActivity;
@@ -68,15 +67,15 @@ public class Request {
 	 * @param permissions 请求的权限
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	public void execute(IHandleCallback callback, @NonNull String... permissions) {
+	public void execute(IHandleCallback callback, int requestCode, @NonNull String... permissions) {
 		if (callback != null)
 			this.mCallback = callback;
 		if (permissions == null || permissions.length == 0)
 			throw new IllegalArgumentException("requested permission is null, method can't to do");
 		if (permissions.length == 1) {
-			one(permissions[0]);
+			one(requestCode, permissions[0]);
 		} else {
-			many(permissions);
+			many(requestCode, permissions);
 		}
 	}
 
@@ -86,7 +85,7 @@ public class Request {
 	 * @param permissions 多个权限
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	private void many(String... permissions) {
+	private void many(int requestCode, String... permissions) {
 		Log.d(TAG, "many: permissions are --->" + permissions.toString());
 //		需要请求的权限
 		List<String> need = new ArrayList();
@@ -111,7 +110,7 @@ public class Request {
 		}
 		//判断有无需要请求的权限
 		if (!need.isEmpty()) {
-			mActivity.requestPermissions(listToArray(need), CODE);
+			mActivity.requestPermissions(listToArray(need), requestCode);
 		}
 		if (!granted.isEmpty()) {
 			mCallback.granted(listToArray(granted));
@@ -125,7 +124,7 @@ public class Request {
 	 * @param permission 指定权限
 	 */
 	@TargetApi(Build.VERSION_CODES.M)
-	private void one(String permission) {
+	private void one(int requestCode, String permission) {
 		Log.d(TAG, "one: the permission is--->" + permission);
 		boolean state = checkState(permission);
 		String[] s = new String[]{permission};
@@ -137,7 +136,7 @@ public class Request {
 					mRationale.showRationale(s);
 			}
 			//请求权限
-			mActivity.requestPermissions(s, CODE);
+			mActivity.requestPermissions(s, requestCode);
 		} else {
 			//已经授权则回调接口
 			mCallback.granted(s);
