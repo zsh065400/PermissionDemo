@@ -108,29 +108,28 @@ public class MainActivity extends AppCompatActivity implements IHandleCallback {
 			}
 		});
 //		请求多个权限
-		Permission.getInstance().request(new IHandleCallback() {
+		Permission.getInstance().request(
+				new IHandleCallback() {
 
-			@Override
-			public void granted(String[] permissions) {
-				String msg = "授权的权限有：";
-				for (String p : permissions) {
-					msg = msg + p;
-				}
-				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
-			}
+					@Override
+					public void granted(String[] permissions) {
+						String msg = "授权的权限有：";
+						for (String p : permissions) {
+							msg = msg + p;
+						}
+						Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+					}
 
-			@Override
-			public void denied(String[] permissions) {
-				String msg = "拒绝的权限有：";
-				for (String p : permissions) {
-					msg = msg + p;
-				}
-				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
-			}
-		}, this, new String[]{
-				Manifest.permission.WRITE_EXTERNAL_STORAGE,
-				Manifest.permission.SEND_SMS
-		});
+					@Override
+					public void denied(String[] permissions) {
+						String msg = "拒绝的权限有：";
+						for (String p : permissions) {
+							msg = msg + p;
+						}
+						Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+					}
+				}, this, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.SEND_SMS
+		);
 
 //		第三方ROM最好采用每次请求一个的方式
 //		请求单个权限
@@ -139,13 +138,11 @@ public class MainActivity extends AppCompatActivity implements IHandleCallback {
 
 	}
 
-
 	@Override
 	protected void onActivityResult(int PermissionCode, int resultCode, Intent data) {
 		super.onActivityResult(PermissionCode, resultCode, data);
 		Permission.getInstance().onActivityResultHandleParticular(this, PermissionCode);
 	}
-
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {

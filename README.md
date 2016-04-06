@@ -1,13 +1,14 @@
 # PermissionRequest By：赵树豪
 
 
-为适配“棉花糖”而封装的运行时权限请求处理库。
+为适配“棉花糖”而封装的运行时权限请求处理库。<br>
+支持Activity和Fragment
 
 请求范例:
 
 ```java
 //请求单个权限
-Request.getInstance(this).execute(
+Permission.getInstance().request(
 				new IHandleCallback() {
 					@Override
 					public void granted(String[] permission) {
@@ -18,75 +19,42 @@ Request.getInstance(this).execute(
 					public void denied(String[] permission) {
 
 					}
-				}, Manifest.permission.CAMERA);
+				}, MainActivity.this,
+			Manifest.permission.WRITE_EXTERNAL_STORAGE);
 ```
 
 ```java
 //请求多个权限
-Request.getInstance(this).execute(new IHandleCallback() {
+Permission.getInstance().request(new IHandleCallback() {
 
 			@Override
 			public void granted(String[] permissions) {
-				String msg = "授权的权限有：";
-				for (String p : permissions) {
-					msg = msg + p;
-				}
-				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+				
 			}
 
 			@Override
 			public void denied(String[] permissions) {
-				String msg = "拒绝的权限有：";
-				for (String p : permissions) {
-					msg = msg + p;
-				}
-				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+				
 			}
-		}, new String[]{
-				Manifest.permission.WRITE_EXTERNAL_STORAGE,
-				Manifest.permission.SEND_SMS
-		});
+		}, MainActivity.this,Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.SEND_SMS
+		);
 ```
 
 设置提示框:
 
 ```java
-Request.getInstance(this).setRationable(new IRationale() {
+Permission.getInstance().setRationable(new IRationale() {
 			@Override
 			public void showRationale(String[] permissions) {
-				String msg = "需要给用户提示的权限有：";
-				for (String p : permissions) {
-					msg = msg + p;
-				}
-				Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show();
+				
 			}
 		});
 ```
 
-Fragment：
+在**onRequestPermissionsResult**中回调：
+
 ```java
-@Override
-public void onViewCreated(View view, @Nullable Bundle 	savedInstanceState) {
-		super.onViewCreated(view, savedInstanceState);
-		Request.getInstance(getActivity()).execute(
-				new IHandleCallback() {
-					@Override
-					public void granted(String[] permission) {
-
-					}
-
-					@Override
-					public void denied(String[] permission) {
-
-					}
-				}, Manifest.permission.CAMERA);
-	}
-
-@Override
-public void onRequestPermissionsResult(int requestCode, 	@NonNull String[] permissions, @NonNull int[] 	grantResults) {
-		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		Request.getInstance(getActivity()).onRequestPermissionsResult(permissions, grantResults);
-	}
+Permission.getInstance().onRequestPermissionsResult(permissions, grantResults);
 ```
 
 ## 支持库信息
@@ -95,6 +63,7 @@ public void onRequestPermissionsResult(int requestCode, 	@NonNull String[] permi
 
 - 最低支持版本：>=api19
 
+> - v2.1.2更新：重命名库名称，修复部分问题，去除无用资源
 > - v2.1.0更新：修复BUG，完善权限
 > - v1.0更新：初步完成权限库
 
@@ -104,21 +73,39 @@ public void onRequestPermissionsResult(int requestCode, 	@NonNull String[] permi
 #####添加依赖(module下build.gradle)
 ```gradle
 dependencies {
-    compile 'org.zsh.support:permission:2.1.0'
+    compile 'org.zsh.support:permission:2.1.2'
 }
 ```
 
-#####相关调用
-- 在`onResume`调用`Request.getInstance(this).execute(IHandleCallback callback, @NonNull String... permissions)`请求一个或多个权限
+#####特殊权限(悬浮窗和写入系统设置)
+请求：
 
-- 复写`onRequestPermissionsResult`方法，在其中调用
-`Request.getInstance(this).onRequestPermissionsResult(permissions, grantResults)`
+```java
+Permission.getInstance().requestParticularPermission(this, Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+				getPackageName()
+				, new IParticular() {
+					@Override
+					public void grant() {
+						
+					}
 
-- 可添加拒绝过权限的提示信息回调接口`Request.getInstance(this).setRationable(IRationale rationable)`
+					@Override
+					public void deny() {
+						
+					}
+				}, Permission_CODE);
+```
 
-- 特殊权限复写`onActivityResult`方法，调用`Request.getInstance(this).handleParticular(requestCode)`
+回调：
+
+复写`onActivityResult`方法，调用`Permission.getInstance().onActivityResultHandleParticular(this, PermissionCode);`
 
 #####其它方法：
-- checkState(String permission) 判断权限请求状态
-- checkShouldShowRationale(String permission) 判断权限是否应该显示提示信息
+- checkState(@NonNull Activity activity, @NonNull String permission) 判断权限请求状态
+- checkShouldShowRationale(@NonNull Activity activity, @NonNull String permission)判断权限是否应该显示提示信息
+
+#####第三方ROM问题解决：
+- 小米：请每次请求一个权限，后续延迟500毫秒请求第二个。（官方不支持一次请求多个权限）
+
+欢迎各位反馈使用中的问题。
 
